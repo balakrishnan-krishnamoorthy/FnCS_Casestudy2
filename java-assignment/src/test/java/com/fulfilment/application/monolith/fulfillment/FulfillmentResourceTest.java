@@ -1,5 +1,6 @@
 package com.fulfilment.application.monolith.fulfillment;
 
+import com.fulfilment.application.monolith.fulfillment.adapter.out.FulfillmentRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;

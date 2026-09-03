@@ -18,4 +18,26 @@ public class LocationGatewayTest {
     // then
     assertEquals(location.identification, "ZWOLLE-001");
   }
+
+  @Test
+  public void testWhenResolveNonExistingLocationShouldReturnNull() {
+
+    LocationGateway locationGateway = new LocationGateway();
+
+    Location location =
+            locationGateway.resolveByIdentifier("INVALID-LOCATION");
+
+    assertEquals(null, location);
+  }
+
+  @Test
+  public void testWhenResolveNullIdentifierShouldReturnNull() {
+
+    LocationGateway locationGateway = new LocationGateway();
+
+    Location location =
+            locationGateway.resolveByIdentifier(null);
+
+    assertEquals(null, location);
+  }
 }

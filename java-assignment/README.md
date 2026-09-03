@@ -1,87 +1,572 @@
 # Java Code Assignment
 
-This is a short code assignment that explores various aspects of software development, including API implementation, documentation, persistence layer handling, and testing.
+A Quarkus-based REST API for managing Stores, Products, Warehouses, and Fulfillment relationships.
 
-## About the assignment
+The application demonstrates:
 
-You will find the tasks of this assignment on [CODE_ASSIGNMENT](CODE_ASSIGNMENT.md) file
+- REST API implementation
+- Business validation rules
+- PostgreSQL persistence using Hibernate ORM with Panache
+- Hexagonal architecture for the Fulfillment module
+- Unit and integration testing
+- JaCoCo test coverage
+- Exception handling and validation
 
-## About the code base
+## Project Architecture
 
-This is based on https://github.com/quarkusio/quarkus-quickstarts
+The application follows a layered architecture, with the Fulfillment module structured using a hexagonal approach.
 
-### Requirements
+### Fulfillment Module
 
-To compile and run this demo you will need:
+```text
+fulfillment/
+├── adapter/
+│   ├── in/
+│   │   └── FulfillmentResource.java
+│   └── out/
+│       └── FulfillmentRepository.java
+├── application/
+│   └── FulfillmentService.java
+├── domain/
+│   └── model/
+│       └── Fulfillment.java
+├── port/
+│   └── FulfillmentStore.java
+├── validator/
+│   └── FulfillmentValidator.java
+└── FulfillmentRequest.java
+```
+
+- **Adapter In** – exposes the REST API endpoint.
+- **Application** – contains the fulfillment business/use-case logic.
+- **Domain** – contains the Fulfillment domain model.
+- **Port** – defines the persistence contract used by the application.
+- **Adapter Out** – implements the persistence port using Panache.
+- **Validator** – contains fulfillment business validation rules.
+
+## Business Validation Rules
+
+The application enforces the following fulfillment constraints:
+
+- A product can be fulfilled by a maximum of **2 different warehouses** for a store.
+- A store can be fulfilled by a maximum of **3 different warehouses**.
+- A warehouse can store a maximum of **5 different products**.
+
+When a validation rule is violated, the API returns an appropriate HTTP **422 Unprocessable Entity** response.
+
+## Requirements
 
 - JDK 17+
+- Maven
+- PostgreSQL database
+- Docker (optional, for running PostgreSQL locally)
 
-In addition, you will need either a PostgreSQL database, or Docker to run one.
+## Running the Application
 
-### Configuring JDK 17+
+Make sure PostgreSQL is available and the database configuration is set in:
 
-Make sure that `JAVA_HOME` environment variables has been set, and that a JDK 17+ `java` command is on the path.
-
-## Building the demo
-
-Execute the Maven build on the root of the project:
-
-```sh
-./mvnw package
+```text
+src/main/resources/application.properties
 ```
 
-## Running the demo
-
-### Live coding with Quarkus
-
-The Maven Quarkus plugin provides a development mode that supports
-live coding. To try this out:
+Start the application in Quarkus development mode:
 
 ```sh
-./mvnw quarkus:dev
+mvn quarkus:dev
 ```
 
-In this mode you can make changes to the code and have the changes immediately applied, by just refreshing your browser.
+The application will start in development mode with live reload enabled.
 
-    Hot reload works even when modifying your JPA entities.
-    Try it! Even the database schema will be updated on the fly.
+The application is available at:
 
-## (Optional) Run Quarkus in JVM mode
+```text
+http://localhost:8080
+```
 
-When you're done iterating in developer mode, you can run the application as a conventional jar file.
+## Building the Application
 
-First compile it:
+To build the application and run the complete test suite:
 
 ```sh
-./mvnw package
+mvn clean verify
 ```
 
-Next we need to make sure you have a PostgreSQL instance running (Quarkus automatically starts one for dev and test mode). To set up a PostgreSQL database with Docker:
+A successful build indicates that the application compiles and the automated tests pass.
+
+## Running Tests
+
+Run all tests using:
 
 ```sh
-docker run -it --rm=true --name quarkus_test -e POSTGRES_USER=quarkus_test -e POSTGRES_PASSWORD=quarkus_test -e POSTGRES_DB=quarkus_test -p 15432:5432 postgres:13.3
+mvn clean test
 ```
 
-Connection properties for the Agroal datasource are defined in the standard Quarkus configuration file,
-`src/main/resources/application.properties`.
+The test suite covers:
 
-Then run it:
+- REST resources
+- Repository operations
+- Validation logic
+- Application behavior
+- Fulfillment business rules
+
+## Test Coverage
+
+JaCoCo is used to measure source code test coverage.
+
+Generate the coverage report with:
 
 ```sh
-java -jar ./target/quarkus-app/quarkus-run.jar
+mvn clean verify
 ```
-    Have a look at how fast it boots.
-    Or measure total native memory consumption...
 
+The HTML coverage report is generated under:
 
-## See the demo in your browser
+```text
+target/jacoco-report/index.html
+```
 
-Navigate to:
+To open the coverage report in the default browser on Windows:
 
-<http://localhost:8080/index.html>
+```powershell
+start target\jacoco-report\index.html
+```
 
-Have fun, and join the team of contributors!
+Current test coverage:
 
-## Troubleshooting
+- **Instruction Coverage: 85%**
+- **Branch Coverage: 80%**
 
-Using **IntelliJ**, in case the generated code is not recognized and you have compilation failures, you may need to add `target/.../jaxrs` folder as "generated sources".
+The project maintains more than **80% overall source code coverage**.
+
+The JaCoCo HTML coverage report is also uploaded as a GitHub Actions artifact named `jacoco-coverage-report` during CI builds. This allows the generated coverage report to be downloaded and reviewed for each CI run without committing generated `target` files to the repository.
+
+## CI Pipeline
+
+GitHub Actions is configured to automatically build and test the application for pushes and pull requests to the `main` branch.
+
+The CI pipeline performs the following steps:
+
+1. Checks out the source code.
+2. Configures JDK 17.
+3. Runs the Maven build and complete test suite using:
+
+```sh
+mvn clean verify
+```
+
+4. Generates the JaCoCo coverage report.
+5. Uploads the generated coverage report as the `jacoco-coverage-report` GitHub Actions artifact for tracking.
+
+The workflow configuration is located at:
+
+```text
+.github/workflows/ci.yml
+```
+
+## Database Configuration
+
+Database configuration is maintained in:
+
+```text
+src/main/resources/application.properties
+```
+
+The application uses PostgreSQL with Hibernate ORM and Panache for persistence.
+
+## API
+
+The application provides REST APIs for managing Warehouses and Fulfillment relationships.
+
+### Warehouse APIs
+
+#### 1. Get All Warehouses
+
+Use this API to retrieve the available warehouse units.
+
+**Method:** `GET`
+
+**URL:**
+
+```text
+http://localhost:8080/warehouse
+```
+
+**Request Body:** None
+
+**Example Response:**
+
+```json
+[
+  {
+    "businessUnitCode": "MWH.001",
+    "location": "ZWOLLE-001",
+    "capacity": 100,
+    "stock": 10
+  },
+  {
+    "businessUnitCode": "MWH.012",
+    "location": "AMSTERDAM-001",
+    "capacity": 50,
+    "stock": 5
+  },
+  {
+    "businessUnitCode": "MWH.023",
+    "location": "TILBURG-001",
+    "capacity": 30,
+    "stock": 27
+  }
+]
+```
+
+**Expected Status:** `200 OK`
+
+**Screenshot:** The screenshot below shows the `GET /warehouse` API executed successfully in Postman and the warehouse data returned by the application.
+
+![Get All Warehouses API](screenshots/location.png)
+
+#### 2. Create Warehouse
+
+Use this API to create a new warehouse unit.
+
+**Method:** `POST`
+
+**URL:**
+
+```text
+http://localhost:8080/warehouse
+```
+
+**Headers:**
+
+```text
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "businessUnitCode": "MWH.TEST",
+  "location": "ZWOLLE-002",
+  "capacity": 50,
+  "stock": 10
+}
+```
+
+**Example Response:**
+
+```json
+{
+  "businessUnitCode": "MWH.TEST",
+  "location": "ZWOLLE-002",
+  "capacity": 50,
+  "stock": 10
+}
+```
+
+**Expected Status:** `200 OK`
+
+**Screenshot:** The screenshot below demonstrates successful creation of a new warehouse using the `POST /warehouse` endpoint. The request body and `200 OK` response are visible in Postman.
+
+![Create Warehouse API](screenshots/warehouse-create.png)
+
+#### 3. Get Warehouse By ID
+
+Use this API to retrieve a specific warehouse using its ID.
+
+**Method:** `GET`
+
+**URL:**
+
+```text
+http://localhost:8080/warehouse/1
+```
+
+**Request Body:** None
+
+**Example Response:**
+
+```json
+{
+  "businessUnitCode": "MWH.001",
+  "location": "ZWOLLE-001",
+  "capacity": 100,
+  "stock": 10
+}
+```
+
+**Expected Status:** `200 OK`
+
+If the warehouse does not exist, the API returns:
+
+```text
+404 Not Found
+```
+
+#### 4. Archive Warehouse
+
+Use this API to archive an existing warehouse using its ID.
+
+**Method:** `DELETE`
+
+**URL:**
+
+```text
+http://localhost:8080/warehouse/3
+```
+
+**Request Body:** None
+
+**Example Response:**
+
+```text
+204 No Content
+```
+
+**Expected Status:** `204 No Content`
+
+**Screenshot:** The screenshot below demonstrates successful warehouse archiving using the `DELETE /warehouse/3` endpoint. The API returns `204 No Content`.
+
+![Archive Warehouse API](screenshots/warehouse-archive.png)
+
+#### 5. Replace Warehouse
+
+Use this API to replace the current warehouse details identified by its business unit code.
+
+**Method:** `POST`
+
+**URL:**
+
+```text
+http://localhost:8080/warehouse/MWH.001/replacement
+```
+
+**Headers:**
+
+```text
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "location": "AMSTERDAM-002",
+  "capacity": 75,
+  "stock": 10
+}
+```
+
+**Example Response:**
+
+```json
+{
+  "businessUnitCode": "MWH.001",
+  "location": "AMSTERDAM-002",
+  "capacity": 75,
+  "stock": 10
+}
+```
+
+**Expected Status:** `200 OK`
+
+**Screenshot:** The screenshot below demonstrates successful replacement of warehouse `MWH.001`. The request changes the location to `AMSTERDAM-002`, capacity to `75`, and stock to `10`, and the API returns `200 OK`.
+
+![Replace Warehouse API](screenshots/warehouse-replace.png)
+
+### Fulfillment APIs
+
+#### 1. Create Fulfillment
+
+Use this API to create a fulfillment relationship between a store, product, and warehouse.
+
+**Method:** `POST`
+
+**URL:**
+
+```text
+http://localhost:8080/fulfillment
+```
+
+**Headers:**
+
+```text
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "storeId": 1,
+  "productId": 1,
+  "warehouseId": 1
+}
+```
+
+**Expected Status:** `201 Created`
+
+The response contains the created fulfillment together with the associated store, product, and warehouse information.
+
+**Screenshot:** The screenshot below demonstrates successful creation of a fulfillment relationship. The request uses store `1`, product `1`, and warehouse `1`, and the API returns `201 Created` with the created fulfillment details.
+
+![Create Fulfillment API](screenshots/fulfillment-create-success.png)
+
+#### 2. Fulfillment Validation – Maximum 2 Warehouses per Product
+
+A product can be fulfilled by a maximum of **2 different warehouses** for a store.
+
+For example, after creating fulfillments for the same store and product using warehouses `1` and `2`, attempting to use warehouse `3` will be rejected.
+
+**Method:** `POST`
+
+**URL:**
+
+```text
+http://localhost:8080/fulfillment
+```
+
+**Headers:**
+
+```text
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "storeId": 1,
+  "productId": 1,
+  "warehouseId": 3
+}
+```
+
+**Expected Response:**
+
+```text
+422 Unprocessable Entity
+```
+
+```json
+{
+  "exceptionType": "jakarta.ws.rs.WebApplicationException",
+  "code": 422,
+  "error": "A product can be fulfilled by maximum 2 warehouses for a store"
+}
+```
+
+**Screenshot:** The screenshot below demonstrates the fulfillment business validation. After the product has already been associated with two different warehouses for the same store, attempting to use a third warehouse is rejected with `422 Unprocessable Entity`.
+
+![Fulfillment Validation Error](screenshots/fulfillment-validation-error.png)
+
+#### 3. Fulfillment Validation – Maximum 3 Warehouses per Store
+
+A store can be fulfilled by a maximum of **3 different warehouses**.
+
+The API rejects a new fulfillment when the store already has fulfillments using three different warehouses.
+
+**Method:** `POST`
+
+**URL:**
+
+```text
+http://localhost:8080/fulfillment
+```
+
+**Headers:**
+
+```text
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "storeId": 1,
+  "productId": 2,
+  "warehouseId": 4
+}
+```
+
+**Expected Response:**
+
+```text
+422 Unprocessable Entity
+```
+
+```json
+{
+  "exceptionType": "jakarta.ws.rs.WebApplicationException",
+  "code": 422,
+  "error": "A store can be fulfilled by maximum 3 different warehouses"
+}
+```
+
+#### 4. Fulfillment Validation – Maximum 5 Products per Warehouse
+
+A warehouse can store a maximum of **5 different products**.
+
+The API rejects a new fulfillment when the warehouse already contains five different products.
+
+**Method:** `POST`
+
+**URL:**
+
+```text
+http://localhost:8080/fulfillment
+```
+
+**Headers:**
+
+```text
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "storeId": 1,
+  "productId": 6,
+  "warehouseId": 1
+}
+```
+
+**Expected Response:**
+
+```text
+422 Unprocessable Entity
+```
+
+```json
+{
+  "exceptionType": "jakarta.ws.rs.WebApplicationException",
+  "code": 422,
+  "error": "A warehouse can store maximum 5 different products"
+}
+```
+
+## API Screenshot Summary
+
+The following screenshots provide evidence of the implemented REST APIs and business validation behavior:
+
+| Screenshot | API | Demonstrates |
+|---|---|---|
+| `warehouse-create.png` | `POST /warehouse` | Successful warehouse creation with `200 OK` |
+| `warehouse-archive.png` | `DELETE /warehouse/3` | Successful warehouse archive with `204 No Content` |
+| `warehouse-replace.png` | `POST /warehouse/MWH.001/replacement` | Successful warehouse replacement with `200 OK` |
+| `fulfillment-create-success.png` | `POST /fulfillment` | Successful fulfillment creation with `201 Created` |
+| `fulfillment-validation-error.png` | `POST /fulfillment` | Business validation failure with `422 Unprocessable Entity` |
+| `location.png` | `GET /warehouse` | Successful warehouse retrieval with `200 OK` |
+
+All screenshots were captured using Postman while running the application locally.
+
+## Assignment
+
+The original assignment requirements are available in:
+
+```text
+CODE_ASSIGNMENT.md
+```

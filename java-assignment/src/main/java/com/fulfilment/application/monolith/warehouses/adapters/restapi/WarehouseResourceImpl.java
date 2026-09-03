@@ -10,10 +10,12 @@ import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.transaction.Transactional;
 
 import java.util.List;
 
 @RequestScoped
+
 public class WarehouseResourceImpl implements WarehouseResource {
 
     @Inject
@@ -36,6 +38,7 @@ public class WarehouseResourceImpl implements WarehouseResource {
     }
 
     @Override
+    @Transactional
     public Warehouse createANewWarehouseUnit(@NotNull Warehouse data) {
         var warehouse =
                 new com.fulfilment.application.monolith.warehouses.domain.models.Warehouse();

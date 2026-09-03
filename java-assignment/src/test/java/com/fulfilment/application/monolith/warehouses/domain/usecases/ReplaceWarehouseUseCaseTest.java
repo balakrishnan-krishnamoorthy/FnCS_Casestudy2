@@ -2,13 +2,18 @@ package com.fulfilment.application.monolith.warehouses.domain.usecases;
 
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
+import com.fulfilment.application.monolith.warehouses.domain.validators.WarehouseValidator;
+import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
+@QuarkusTest
 class ReplaceWarehouseUseCaseTest {
 
     @Test
@@ -16,13 +21,20 @@ class ReplaceWarehouseUseCaseTest {
 
         FakeWarehouseStore warehouseStore = new FakeWarehouseStore();
 
-        ReplaceWarehouseUseCase useCase =
-                new ReplaceWarehouseUseCase(warehouseStore);
-
         Warehouse newWarehouse = new Warehouse();
         newWarehouse.businessUnitCode = "MWH.999";
         newWarehouse.stock = 10;
         newWarehouse.capacity = 20;
+
+        WarehouseValidator validator = mock(WarehouseValidator.class);
+
+        doThrow(new IllegalArgumentException(
+                "Warehouse with business unit code MWH.999 does not exist"))
+                .when(validator)
+                .validateReplace(newWarehouse, null);
+
+        ReplaceWarehouseUseCase useCase =
+                new ReplaceWarehouseUseCase(warehouseStore, validator);
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -44,12 +56,19 @@ class ReplaceWarehouseUseCaseTest {
 
         warehouseStore.existingWarehouse = oldWarehouse;
 
-        ReplaceWarehouseUseCase useCase =
-                new ReplaceWarehouseUseCase(warehouseStore);
-
         Warehouse newWarehouse = createWarehouse(
                 "MWH.001", 50, 10
         );
+
+        WarehouseValidator validator = mock(WarehouseValidator.class);
+
+        doThrow(new IllegalArgumentException(
+                "New warehouse stock must match the stock of the warehouse being replaced"))
+                .when(validator)
+                .validateReplace(newWarehouse, oldWarehouse);
+
+        ReplaceWarehouseUseCase useCase =
+                new ReplaceWarehouseUseCase(warehouseStore, validator);
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -71,12 +90,19 @@ class ReplaceWarehouseUseCaseTest {
 
         warehouseStore.existingWarehouse = oldWarehouse;
 
-        ReplaceWarehouseUseCase useCase =
-                new ReplaceWarehouseUseCase(warehouseStore);
-
         Warehouse newWarehouse = createWarehouse(
                 "MWH.001", 20, 30
         );
+
+        WarehouseValidator validator = mock(WarehouseValidator.class);
+
+        doThrow(new IllegalArgumentException(
+                "New warehouse capacity cannot accommodate the existing stock"))
+                .when(validator)
+                .validateReplace(newWarehouse, oldWarehouse);
+
+        ReplaceWarehouseUseCase useCase =
+                new ReplaceWarehouseUseCase(warehouseStore, validator);
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -98,12 +124,14 @@ class ReplaceWarehouseUseCaseTest {
 
         warehouseStore.existingWarehouse = oldWarehouse;
 
-        ReplaceWarehouseUseCase useCase =
-                new ReplaceWarehouseUseCase(warehouseStore);
-
         Warehouse newWarehouse = createWarehouse(
                 "MWH.001", 50, 20
         );
+
+        WarehouseValidator validator = mock(WarehouseValidator.class);
+
+        ReplaceWarehouseUseCase useCase =
+                new ReplaceWarehouseUseCase(warehouseStore, validator);
 
         assertNull(oldWarehouse.archivedAt);
         assertNull(newWarehouse.createdAt);
